@@ -1,0 +1,197 @@
+-- Full Admin Command GUI Script
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create the main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminGUI"
+screenGui.Parent = PlayerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0.3, 0, 0.5, 0)
+frame.Position = UDim2.new(0.05, 0, 0.25, 0)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "Admin Commands"
+title.TextSize = 24
+title.TextStrokeTransparency = 0.5
+title.TextScaled = true
+title.Parent = frame
+
+local commandBox = Instance.new("TextBox")
+commandBox.Size = UDim2.new(0.8, 0, 0.1, 0)
+commandBox.Position = UDim2.new(0.1, 0, 0.12, 0)
+commandBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+commandBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+commandBox.PlaceholderText = "Enter command..."
+commandBox.TextSize = 18
+commandBox.TextWrapped = true
+commandBox.Parent = frame
+
+local executeButton = Instance.new("TextButton")
+executeButton.Size = UDim2.new(0.8, 0, 0.1, 0)
+executeButton.Position = UDim2.new(0.1, 0, 0.24, 0)
+executeButton.BackgroundColor3 = Color3.fromRGB(0, 128, 0)
+executeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+executeButton.Text = "Execute"
+executeButton.TextSize = 20
+executeButton.TextStrokeTransparency = 0.5
+executeButton.TextScaled = true
+executeButton.Parent = frame
+
+-- Command functions
+local function findPlayer(name)
+    return Players:FindFirstChild(name)
+end
+
+local function sendNotification(text)
+    LocalPlayer:SendNotification({
+        Title = "Admin Command",
+        Text = text,
+        Duration = 5
+    })
+end
+
+local function executeCommand(commandString)
+    local args = commandString:split(" ")
+    local command = args[1]:lower()
+    table.remove(args, 1)
+
+    if command == "bring" then
+        local targetName = args[1]
+        local targetPlayer = findPlayer(targetName)
+        if targetPlayer and targetPlayer.Character then
+            targetPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+            sendNotification(targetName .. " has been brought to you.")
+        else
+            sendNotification("Player not found or character not loaded.")
+        end
+    elseif command == "kick" then
+        local targetName = args[1]
+        local targetPlayer = findPlayer(targetName)
+        if targetPlayer then
+            targetPlayer:Kick("You have been kicked from the game.")
+            sendNotification(targetName .. " has been kicked.")
+        else
+            sendNotification("Player not found.")
+        end
+    elseif command == "ban" then
+        local targetName = args[1]
+        local targetPlayer = findPlayer(targetName)
+        if targetPlayer then
+            -- Implement actual banning logic here
+            targetPlayer:Kick("You have been banned from the game.")
+            sendNotification(targetName .. " has been banned.")
+        else
+            sendNotification("Player not found.")
+        end
+    elseif command == "god" then
+        local targetName = args[1]
+        local targetPlayer = findPlayer(targetName)
+        if targetPlayer and targetPlayer.Character then
+            local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.MaxHealth = math.huge
+                humanoid.Health = math.huge
+                sendNotification(targetName .. " is now invincible.")
+            else
+                sendNotification("Humanoid not found in character.")
+            end
+        else
+            sendNotification("Player not found or character not loaded.")
+        end
+    elseif command == "bird" then
+        -- Enable "bird" (flying) mode
+        if not LocalPlayer.Character then return end
+        if not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+        if LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyGyro") then return end
+
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.P = 9e4
+        bodyGyro.MaxTorque = Vector3.new(4000, 4000, 4000)
+        bodyGyro.Parent = LocalPlayer.Character.HumanoidRootPart
+
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVelocity.Parent = LocalPlayer.Character.HumanoidRootPart
+
+        local function onRenderStep()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                bodyGyro.CFrame = Workspace.CurrentCamera.CFrame
+                bodyVelocity.Velocity = (Workspace.CurrentCamera.CFrame.LookVector * 50)
+            end
+        end
+
+        RunService.RenderStepped:Connect(onRenderStep)
+        sendNotification("Bird mode enabled.")
+    elseif command == "unbird" then
+        -- Disable "bird" (flying) mode
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            for _, v in ipairs(LocalPlayer.Character.HumanoidRootPart:GetChildren()) do
+                if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then
+                    v:Destroy()
+                end
+            end
+        end
+        sendNotification("Bird mode disabled.")
+    elseif command == "teleport" then
+        local targetName = args[1]
+        local targetPlayer = findPlayer(targetName)
+        if targetPlayer and targetPlayer.Character then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+            sendNotification("Teleported to " .. targetName .. ".")
+        else
+            sendNotification("Player not found or character not loaded.")
+        end
+    elseif command == "clearworkspace" then
+        for _, v in pairs(Workspace:GetChildren()) do
+            if v:IsA("BasePart") then
+                v:Destroy()
+            end
+        end
+        sendNotification("Workspace cleared.")
+    elseif command == "walkspeed" then
+        local speedValue = tonumber(args[1])
+        if speedValue then
+            LocalPlayer.Character.Humanoid.WalkSpeed = speedValue
+            sendNotification("Walk speed set to " .. speedValue)
+        else
+            sendNotification("Invalid walk speed value.")
+        end
+    elseif command == "jumppower" then
+        local jumpPowerValue = tonumber(args[1])
+        if jumpPowerValue then
+            LocalPlayer.Character.Humanoid.JumpPower = jumpPowerValue
+            sendNotification("Jump power set to " .. jumpPowerValue)
+        else
+            sendNotification("Invalid jump power value.")
+        end
+    else
+        sendNotification("Unknown command.")
+    end
+end
+
+-- Connect the execute button to the command execution function
+executeButton.MouseButton1Click:Connect(function()
+    local commandString = commandBox.Text
+    if commandString ~= "" then
+        executeCommand(commandString)
+        commandBox.Text = ""
+    else
+        LocalPlayer:SendNotification({
+            Title = "Admin Command",
+            Text = "Please enter a command.",
+            Duration = 5
+        })
+    end
+end)
